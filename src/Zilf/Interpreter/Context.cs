@@ -157,6 +157,7 @@ namespace Zilf.Interpreter
             ZEnvironment = new ZEnvironment(this);
 
             IncludePaths = new List<string>();
+            LibraryPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             InitTypeMap();
 
@@ -206,6 +207,12 @@ namespace Zilf.Interpreter
         public bool IgnoreCase { get; }
 
         public List<string> IncludePaths { get; }
+
+        /// <summary>
+        /// Maps MDL-style library path names (e.g., "ZILLIB", "PARSER") to actual directory paths.
+        /// Used to resolve file references like "~ZILLIB/CLUES" to actual filesystem paths.
+        /// </summary>
+        public Dictionary<string, string> LibraryPaths { get; }
 
         public bool Quiet { get; set; }
 
@@ -712,9 +719,56 @@ namespace Zilf.Interpreter
 
         private static readonly string[] IncludeFileExtensions = { ".zil", ".mud", ".ZIL", ".MUD" };
 
+        /// <summary>
+        /// Resolves MDL-style library path prefixes (e.g., "~ZILLIB/CLUES" -> "/path/to/zillib/CLUES").
+        /// Returns the resolved name and the base path to search in, or null if no library prefix.
+        /// </summary>
+        private (string resolvedName, string? basePath)? ResolveLibraryPath(string name)
+        {
+            // Check for MDL-style library prefix: ~NAME/filename
+            if (name.Length > 1 && name[0] == '~')
+            {
+                var slashIndex = name.IndexOf('/');
+                if (slashIndex > 1)
+                {
+                    var libraryName = name.Substring(1, slashIndex - 1);
+                    var fileName = name.Substring(slashIndex + 1);
+
+                    if (LibraryPaths.TryGetValue(libraryName, out var libraryPath))
+                    {
+                        return (fileName, libraryPath);
+                    }
+
+                    // Library not configured - return original name to search in standard paths
+                    // This allows the error message to show the original path
+                }
+            }
+
+            return null;
+        }
+
         /// <exception cref="FileNotFoundException">The file wasn't found in any include path.</exception>
         public string FindIncludeFile(string name)
         {
+            // Check for MDL-style library path prefix
+            var libraryResolution = ResolveLibraryPath(name);
+            if (libraryResolution.HasValue)
+            {
+                var (resolvedName, basePath) = libraryResolution.Value;
+                if (basePath != null)
+                {
+                    // Search only in the library path
+                    foreach (var nameVariant in GetIncludeFileNameVariants(resolvedName))
+                    {
+                        var combined = Path.Combine(basePath, nameVariant);
+                        if (FileSystem.Exists(combined))
+                            return combined;
+                    }
+                }
+                // Library not found - fall through to standard search which will fail with original name
+            }
+
+            // Standard include path search
             foreach (var path in IncludePaths)
             {
                 foreach (var nameVariant in GetIncludeFileNameVariants(name))

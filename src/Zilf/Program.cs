@@ -143,6 +143,13 @@ namespace Zilf
                 Arity = ArgumentArity.ZeroOrMore
             };
 
+            var buildLibraryPathOption = new Option<string[]>("--library-path", "-L")
+            {
+                Description = "Map an MDL library name to a directory (format: NAME=PATH, e.g., ZILLIB=/path/to/lib). May be repeated.",
+                AllowMultipleArgumentsPerToken = false,
+                Arity = ArgumentArity.ZeroOrMore
+            };
+
             var buildTraceRoutinesOption = new Option<bool>("--trace", "-t")
             {
                 Description = "Trace routine calls at runtime."
@@ -205,6 +212,7 @@ namespace Zilf
             buildCommand.Options.Add(buildCaseSensitiveOption);
             buildCommand.Options.Add(buildCaseInsensitiveOption);
             buildCommand.Options.Add(buildIncludePathOption);
+            buildCommand.Options.Add(buildLibraryPathOption);
             buildCommand.Options.Add(buildTraceRoutinesOption);
             buildCommand.Options.Add(buildDebugInfoOption);
             buildCommand.Options.Add(buildGlulxOption);
@@ -379,6 +387,7 @@ namespace Zilf
                 buildCaseSensitiveOption,
                 buildCaseInsensitiveOption,
                 buildIncludePathOption,
+                buildLibraryPathOption,
                 buildTraceRoutinesOption,
                 buildDebugInfoOption,
                 buildGlulxOption,
@@ -451,6 +460,7 @@ namespace Zilf
             Option<bool?> BuildCaseSensitiveOption,
             Option<bool?> BuildCaseInsensitiveOption,
             Option<string[]> BuildIncludePathOption,
+            Option<string[]> BuildLibraryPathOption,
             Option<bool> BuildTraceRoutinesOption,
             Option<bool> BuildDebugInfoOption,
             Option<bool> BuildGlulxOption,
@@ -886,6 +896,7 @@ namespace Zilf
             Option<bool?> caseSensitiveOption;
             Option<bool?> caseInsensitiveOption;
             Option<string[]> includePathOption;
+            Option<string[]>? libraryPathOption;
             Option<bool> enableAllWarningsOption;
             Option<bool> warningsAsErrorsOption;
             Option<string[]> suppressWarningsOption;
@@ -901,6 +912,7 @@ namespace Zilf
                 caseSensitiveOption = spec.BuildCaseSensitiveOption;
                 caseInsensitiveOption = spec.BuildCaseInsensitiveOption;
                 includePathOption = spec.BuildIncludePathOption;
+                libraryPathOption = spec.BuildLibraryPathOption;
                 enableAllWarningsOption = spec.BuildEnableAllWarningsOption;
                 warningsAsErrorsOption = spec.BuildWarningsAsErrorsOption;
                 suppressWarningsOption = spec.BuildSuppressWarningsOption;
@@ -915,6 +927,7 @@ namespace Zilf
                 caseSensitiveOption = spec.ReplCaseSensitiveOption;
                 caseInsensitiveOption = spec.ReplCaseInsensitiveOption;
                 includePathOption = spec.ReplIncludePathOption;
+                libraryPathOption = null; // Not available in REPL
                 enableAllWarningsOption = default!; // Not available in REPL
                 warningsAsErrorsOption = default!; // Not available in REPL
                 suppressWarningsOption = default!; // Not available in REPL
@@ -929,6 +942,7 @@ namespace Zilf
                 caseSensitiveOption = spec.ExecCaseSensitiveOption;
                 caseInsensitiveOption = spec.ExecCaseInsensitiveOption;
                 includePathOption = spec.ExecIncludePathOption;
+                libraryPathOption = null; // Not available in Exec
                 enableAllWarningsOption = spec.ExecEnableAllWarningsOption;
                 warningsAsErrorsOption = spec.ExecWarningsAsErrorsOption;
                 suppressWarningsOption = spec.ExecSuppressWarningsOption;
@@ -985,6 +999,24 @@ namespace Zilf
 
             ctx.IncludePaths.AddRange(includePaths);
             AddImplicitIncludePaths(ctx.IncludePaths, inFile, mode);
+
+            // Process library path mappings (format: NAME=PATH)
+            if (libraryPathOption != null)
+            {
+                var libraryPaths = parseResult.GetValue(libraryPathOption) ?? [];
+                foreach (var mapping in libraryPaths)
+                {
+                    var parts = mapping.Split('=', 2);
+                    if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]) && !string.IsNullOrWhiteSpace(parts[1]))
+                    {
+                        ctx.LibraryPaths[parts[0].Trim()] = parts[1].Trim();
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine($"Warning: Invalid library path mapping '{mapping}'. Expected format: NAME=PATH");
+                    }
+                }
+            }
 
             foreach (var codeList in suppressedCodes)
             {

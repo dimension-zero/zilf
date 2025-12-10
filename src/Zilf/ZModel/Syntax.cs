@@ -204,8 +204,15 @@ namespace Zilf.ZModel
                         break;
 
                     default:
+                        // Count current prepositions
                         var numPreps = prep2 != null ? 2 : prep1 != null ? 1 : 0;
-                        if (numPreps == 2 || numPreps > numObjects)
+
+                        // Allow multiple prepositions before OBJECT (compound preposition pattern).
+                        // Infocom games used patterns like "SLEEP DOWN ON OBJECT" where "DOWN" is a
+                        // verb particle and "ON" is the preposition. We keep the last preposition
+                        // before each OBJECT, treating earlier ones as implicit verb particles.
+                        // Only error if we have 2+ prepositions AND an OBJECT between them.
+                        if (numPreps == 2)
                         {
                             var error = new InterpreterError(InterpreterMessages.Too_Many_0_In_Syntax_Definition, "prepositions");
 
@@ -216,11 +223,18 @@ namespace Zilf.ZModel
                         }
                         if (numObjects == 0)
                         {
+                            // Before first OBJECT - allow multiple preps, keep last one
                             prep1 = atom;
+                        }
+                        else if (numObjects == 1)
+                        {
+                            // After first OBJECT - allow multiple preps before second OBJECT, keep last one
+                            prep2 = atom;
                         }
                         else
                         {
-                            prep2 = atom;
+                            // After second OBJECT - no more prepositions allowed
+                            throw new InterpreterError(InterpreterMessages.Too_Many_0_In_Syntax_Definition, "prepositions");
                         }
                         break;
                 }
