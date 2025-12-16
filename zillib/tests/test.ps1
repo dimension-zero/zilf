@@ -1,3 +1,7 @@
+#!/usr/bin/env pwsh
+#Requires -PSEdition Core
+#Requires -Version 7.0
+
 $slnDir = if (Test-Path env:ZILF_SLN_PATH) { $env:ZILF_SLN_PATH } else { "..\.." }
 $zilfProjectPath = $slnDir + "\src\Zilf\Zilf.csproj"
 $zapfProjectPath = $slnDir + "\src\Zapf\Zapf.csproj"

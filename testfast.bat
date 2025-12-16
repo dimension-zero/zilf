@@ -1,1 +1,0 @@
-dotnet test Zilf.sln -c Debug --filter "TestCategory!=Slow" --logger "console;verbosity=minimal" %1 %2 %3 %4 %5 %6 %7 %8 %9
