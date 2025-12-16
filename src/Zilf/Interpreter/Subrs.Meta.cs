@@ -436,15 +436,46 @@ namespace Zilf.Interpreter
         }
 
         /// <summary>
-        /// Performs garbage collection immediately.
+        /// Performs garbage collection, or sets the Z-machine version if called with
+        /// Infocom's version directive pattern: &lt;GC 0 T [version]&gt;
         /// </summary>
         /// <param name="ctx"></param>
-        /// <param name="args">Ignored.</param>
-        /// <returns>True.</returns>
+        /// <param name="args">If args match pattern [0, T, version?], sets Z-machine version. Otherwise ignored.</param>
+        /// <returns>True, or the new version number if setting version.</returns>
         [SuppressMessage("Microsoft.Reliability", "CA2001:AvoidCallingProblematicMethods", MessageId = "System.GC.Collect")]
         [Subr]
         public static ZilObject GC(Context ctx, ZilObject[] args)
         {
+            // Check for Infocom's version directive pattern: <GC 0 T [version]>
+            // This was used in original Infocom MDL sources to set Z-machine version
+            if (args.Length >= 2 && args.Length <= 3 &&
+                args[0] is ZilFix { Value: 0 } &&
+                args[1] is ZilAtom { StdAtom: StdAtom.T })
+            {
+                // Determine version: default to 3 if not specified
+                int newVersion = 3;
+                if (args.Length == 3 && args[2] is ZilFix versionFix)
+                {
+                    newVersion = versionFix.Value;
+                    if (newVersion < 3 || newVersion > 8)
+                    {
+                        throw new InterpreterError(
+                            InterpreterMessages._0_Unrecognized_Version_Specifier_1,
+                            "GC",
+                            newVersion);
+                    }
+                }
+
+                // Set the Z-machine version (same as VERSION directive)
+                if (!ctx.IsGlulx)
+                {
+                    ctx.SetZVersion(newVersion);
+                }
+
+                return new ZilFix(newVersion);
+            }
+
+            // Standard garbage collection behavior
             System.GC.Collect();
             return ctx.TRUE;
         }

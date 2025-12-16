@@ -1971,8 +1971,11 @@ namespace Zilf.Compiler.Builtins
         /// <summary>
         /// Resets all interpreter state and restarts the game from the beginning.
         /// </summary>
+        /// <remarks>
+        /// DO-RESTART is an alias used in some Infocom games (e.g., Infocom-Sampler).
+        /// </remarks>
         /// <param name="c"></param>
-        [Builtin("RESTART", HasSideEffect = true)]
+        [Builtin("RESTART", "DO-RESTART", HasSideEffect = true)]
         public static void RestartOp(VoidCall c)
         {
             c.rb.EmitRestart();

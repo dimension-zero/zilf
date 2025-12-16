@@ -1,0 +1,61 @@
+# Build outputs
+bin/
+obj/
+dist/
+packages/
+Package/Debug/
+Package/Release/
+
+# Z-machine files
+*.dbg
+*.z[0-9]
+*.zap
+
+# Visual Studio / IDE
+.vs/
+.vscode/
+_ReSharper.Caches/
+*.suo
+*.user
+*.sdf
+*.vsmdi
+TestResults/
+TestResultArchive/
+
+# NuGet
+.nuget/
+
+# Generated files
+*.g.cs
+src/WindowsInstaller/wix/WindowsInstaller.g.wxs
+**/wwwroot/release-info.json
+**/wwwroot/project_templates/
+
+# Test artifacts
+Library/tests/*.dll
+Library/tests/*.exe
+Testing/*.dll
+Testing/*.exe
+
+# Examples
+Examples/**/*.code-workspace
+Examples/**/*.bat
+
+# Python
+*.pyc
+.mypy_cache/
+venv/
+.venv/
+
+# Temporary/misc files
+*.log
+*.orig
+*.rej
+*.sav
+*~
+no_dist/
+old-*
+temp/
+zapf.bat
+zilf.bat
+*DO_NOT_COMMIT*
