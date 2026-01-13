@@ -729,6 +729,13 @@ namespace Zilf.Compiler
         void PrepareAndCheckGlobalStorage(Queue<System.Action> globalInitializers,
              out string[] reservedGlobals)
         {
+            // Add implicit globals for Infocom compatibility
+            // These are standard globals expected by original Infocom games
+            AddImplicitGlobalIfMissing(StdAtom.HERE);
+            AddImplicitGlobalIfMissing(StdAtom.PRSA);
+            AddImplicitGlobalIfMissing(StdAtom.PRSO);
+            AddImplicitGlobalIfMissing(StdAtom.PRSI);
+
             // FUNNY-GLOBALS?
             reservedGlobals = Context.ZEnvironment.VocabFormat.GetReservedGlobalNames();
             if (Context.GetGlobalOption(StdAtom.DO_FUNNY_GLOBALS_P))
@@ -751,6 +758,29 @@ namespace Zilf.Compiler
                         240 - reservedGlobals.Length));
                 }
             }
+        }
+
+        /// <summary>
+        /// Adds an implicit global variable if it doesn't already exist.
+        /// This provides compatibility with original Infocom games that expect
+        /// certain globals (like HERE, PRSA, PRSO, PRSI) to exist without explicit definition.
+        /// </summary>
+        void AddImplicitGlobalIfMissing(StdAtom stdAtom)
+        {
+            var atom = Context.GetStdAtom(stdAtom);
+
+            // Check if global already exists
+            if (Context.ZEnvironment.Globals.Any(g => g.Name.StdAtom == stdAtom))
+                return;
+
+            // Also check if it's already been set as a ZVal
+            if (Context.GetZVal(atom) is ZilGlobal)
+                return;
+
+            // Create implicit global with default value of false (<>)
+            var g = new ZilGlobal(atom, Context.FALSE);
+            Context.SetZVal(atom, g);
+            Context.ZEnvironment.Globals.Add(g);
         }
 
         void EnforceFlagLimit()

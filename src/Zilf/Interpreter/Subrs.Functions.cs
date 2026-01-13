@@ -114,7 +114,9 @@ namespace Zilf.Interpreter
              [Optional] ZilAtom? activationAtom, ZilList argList,
              [Optional] ZilDecl? decl, [Required] ZilObject[] body)
         {
-            if (!ctx.AllowRedefine && ctx.GetGlobalVal(name) != null)
+            var existingVal = ctx.GetGlobalVal(name);
+            // Allow shadowing of ZilMacroFSubr (built-in fallback macros like VERB?, PRSO?, PRSI?)
+            if (!ctx.AllowRedefine && existingVal != null && existingVal is not ZilMacroFSubr)
                 throw new InterpreterError(InterpreterMessages._0_Already_Defined_1, "DEFMAC", name.ToStringContext(ctx, false));
 
             var func = new ZilFunction(

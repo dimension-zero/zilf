@@ -1535,6 +1535,107 @@ namespace Zilf.Interpreter
             return ctx.TRUE;
         }
 
+        /// <summary>
+        /// Expands to an EQUAL? form comparing PRSA against verb constants.
+        /// </summary>
+        /// <remarks>
+        /// This is a built-in macro for compatibility with original Infocom ZIL source.
+        /// <code>&lt;VERB? EXAMINE TAKE&gt;</code> expands to <code>&lt;EQUAL? ,PRSA ,V?EXAMINE ,V?TAKE&gt;</code>
+        /// </remarks>
+        /// <param name="ctx">The interpreter context.</param>
+        /// <param name="args">Verb names (atoms) to check against PRSA.</param>
+        /// <returns>A ZilForm representing the EQUAL? comparison that will be compiled.</returns>
+        [FSubr("VERB?")]
+        public static ZilResult VERB_P(Context ctx, [Required] ZilObject[] args)
+        {
+            // Get the EQUAL? atom
+            var equalAtom = ZilAtom.Parse("EQUAL?", ctx);
+
+            // Build ,PRSA (GVAL form for PRSA)
+            var prsaAtom = ctx.GetStdAtom(StdAtom.PRSA);
+            var gvalAtom = ctx.GetStdAtom(StdAtom.GVAL);
+            var prsaGval = new ZilForm(new ZilObject[] { gvalAtom, prsaAtom });
+
+            // Build the arguments list: EQUAL?, ,PRSA, ,V?arg1, ,V?arg2, ...
+            var formElements = new List<ZilObject> { equalAtom, prsaGval };
+
+            foreach (var arg in args)
+            {
+                if (arg is not ZilAtom verbAtom)
+                {
+                    throw new InterpreterError(
+                        InterpreterMessages._0_Expected_1,
+                        "VERB?: arg",
+                        "an atom");
+                }
+
+                // Create V?VERBNAME atom
+                var verbConstName = "V?" + verbAtom.Text;
+                var verbConstAtom = ZilAtom.Parse(verbConstName, ctx);
+
+                // Wrap in GVAL form: ,V?VERBNAME
+                var verbGval = new ZilForm(new ZilObject[] { gvalAtom, verbConstAtom });
+                formElements.Add(verbGval);
+            }
+
+            // Return the expanded form <EQUAL? ,PRSA ,V?verb1 ,V?verb2 ...>
+            var result = new ZilForm(formElements);
+            result.SourceLine = ctx.TopFrame.SourceLine;
+            return result;
+        }
+
+        /// <summary>
+        /// Expands to an EQUAL? form comparing PRSO against object constants.
+        /// </summary>
+        /// <remarks>
+        /// This is a built-in macro for compatibility with original Infocom ZIL source.
+        /// <code>&lt;PRSO? LAMP SWORD&gt;</code> expands to <code>&lt;EQUAL? ,PRSO ,LAMP ,SWORD&gt;</code>
+        /// </remarks>
+        [FSubr("PRSO?")]
+        public static ZilResult PRSO_P(Context ctx, [Required] ZilObject[] args)
+        {
+            return BuildObjectComparisonForm(ctx, StdAtom.PRSO, args, "PRSO?");
+        }
+
+        /// <summary>
+        /// Expands to an EQUAL? form comparing PRSI against object constants.
+        /// </summary>
+        /// <remarks>
+        /// This is a built-in macro for compatibility with original Infocom ZIL source.
+        /// <code>&lt;PRSI? LAMP SWORD&gt;</code> expands to <code>&lt;EQUAL? ,PRSI ,LAMP ,SWORD&gt;</code>
+        /// </remarks>
+        [FSubr("PRSI?")]
+        public static ZilResult PRSI_P(Context ctx, [Required] ZilObject[] args)
+        {
+            return BuildObjectComparisonForm(ctx, StdAtom.PRSI, args, "PRSI?");
+        }
+
+        /// <summary>
+        /// Helper to build EQUAL? comparison forms for PRSO?/PRSI? macros.
+        /// </summary>
+        /// <remarks>
+        /// Arguments can be any expression (typically GVAL forms like ,LAMP or ,SWORD).
+        /// They are passed through directly to the EQUAL? form without modification.
+        /// </remarks>
+        private static ZilResult BuildObjectComparisonForm(Context ctx, StdAtom targetAtom, ZilObject[] args, string funcName)
+        {
+            var equalAtom = ZilAtom.Parse("EQUAL?", ctx);
+            var gvalAtom = ctx.GetStdAtom(StdAtom.GVAL);
+            var targetGval = new ZilForm(new ZilObject[] { gvalAtom, ctx.GetStdAtom(targetAtom) });
+
+            var formElements = new List<ZilObject> { equalAtom, targetGval };
+
+            // Arguments are passed through directly - they're typically GVAL forms like ,LAMP
+            foreach (var arg in args)
+            {
+                formElements.Add(arg);
+            }
+
+            var result = new ZilForm(formElements);
+            result.SourceLine = ctx.TopFrame.SourceLine;
+            return result;
+        }
+
         #endregion
 
         #region Z-Code: Version 6 Parser

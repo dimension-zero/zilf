@@ -317,6 +317,15 @@ namespace Zilf.Interpreter
             SetGlobalVal(ZilAtom.Parse("ZILCH!-ZILCH!-PACKAGE", this), TRUE);
         }
 
+        // FSubrs that should be expanded during macro expansion phase, not evaluation
+        // These are built-in macros like VERB?, PRSO?, PRSI? for Infocom compatibility
+        static readonly HashSet<string> MacroExpanderFSubrs = new(StringComparer.Ordinal)
+        {
+            "VERB?",
+            "PRSO?",
+            "PRSI?"
+        };
+
         void InitSubrs()
         {
             var fsubrsQuery = from pair in GeneratedSubrParsers.FSubrParsers
@@ -334,7 +343,21 @@ namespace Zilf.Interpreter
 
                 // these atoms need to be on the root oblist
                 var atom = ZilAtom.Parse(name + "!-", this);
-                SetGlobalVal(atom, isFSubr ? new ZilFSubr(baseName, del) : new ZilSubr(baseName, del));
+
+                // Use ZilMacroFSubr for macro-like FSubrs that need to be expanded during compilation
+                ZilObject subrValue;
+                if (isFSubr)
+                {
+                    subrValue = MacroExpanderFSubrs.Contains(baseName)
+                        ? new ZilMacroFSubr(baseName, del)
+                        : new ZilFSubr(baseName, del);
+                }
+                else
+                {
+                    subrValue = new ZilSubr(baseName, del);
+                }
+
+                SetGlobalVal(atom, subrValue);
             }
         }
 

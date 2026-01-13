@@ -22,7 +22,7 @@ using Zilf.Diagnostics;
 namespace Zilf.Interpreter.Values
 {
     [BuiltinType(StdAtom.FSUBR, PrimType.STRING)]
-    sealed class ZilFSubr : ZilSubr
+    class ZilFSubr : ZilSubr
     {
         public ZilFSubr(string name, SubrDelegate handler)
             : base(name, handler)

@@ -191,6 +191,26 @@ namespace Zilf.Interpreter.Values
                         return resultForm.Expand(ctx);
                     }
 
+                // Handle macro-like FSubrs (those marked with IMacroExpander)
+                // This enables built-in macros like VERB?, PRSO?, PRSI? for Infocom compatibility
+                case IMacroExpander macroExpander:
+                    using (var frame = ctx.PushFrame(this))
+                    using (DiagnosticContext.Push(SourceLine, frame))
+                    {
+                        var expandResult = macroExpander.ExpandMacro(ctx, Rest.ToArray());
+                        if (expandResult.ShouldPass())
+                            return expandResult;
+
+                        // If the expansion returns a form, recursively expand it
+                        if ((ZilObject)expandResult is ZilForm expandedForm && !ReferenceEquals(expandedForm, this))
+                        {
+                            expandedForm = DeepRewriteSourceInfo(expandedForm, SourceLine);
+                            return expandedForm.Expand(ctx);
+                        }
+
+                        return expandResult;
+                    }
+
                 case ZilFix _:
                     // TODO: is rewriting in place really the right behavior here?
 
