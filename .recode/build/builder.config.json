@@ -1,0 +1,13 @@
+{
+  "project": {
+    "name": "zilf"
+  },
+  "build": {
+    "solution": "Zilf.sln",
+    "languages": {
+      "csharp": {
+        "enabled": true
+      }
+    }
+  }
+}
